@@ -1,0 +1,11 @@
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+backend/.env
+backend/vendor/
+backend/node_modules/
+backend/database/*.sqlite
+mobile/build/
+mobile/.dart_tool/

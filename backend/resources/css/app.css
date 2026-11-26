@@ -1,0 +1,25 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    --color-canvas: #F5F5F3;
+    --color-charcoal: #1A1C19;
+    --color-lime-volt: #B6F500;
+    --color-muted-ink: #7A7D78;
+}
+
+body {
+    background-color: #F5F5F3;
+    color: #141513;
+    font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+.font-display {
+    font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+}
