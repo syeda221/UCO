@@ -165,5 +165,11 @@ class AdminConsoleTest extends TestCase
         $correction = CollectionEvent::where('supersedes_event_id', $original->id)->firstOrFail();
         $this->assertEquals(45.0, $correction->volume_liters);
         $this->assertEquals($admin->id, $correction->created_by_admin_id);
+
+        // Admin can also sync vendor GPS from a verified field pickup
+        $this->actingAs($admin)
+            ->post(route('admin.events.set-vendor-gps', $correction))
+            ->assertRedirect();
+        $this->assertEquals($correction->gps_lat, $vendor->fresh()->gps_lat);
     }
 }

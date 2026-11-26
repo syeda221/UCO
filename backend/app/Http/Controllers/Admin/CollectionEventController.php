@@ -169,4 +169,35 @@ class CollectionEventController extends Controller
 
         return Storage::disk('local')->response($photo->file_path);
     }
+
+    public function setVendorGps(Request $request, CollectionEvent $event): RedirectResponse
+    {
+        $vendor = $event->vendor;
+        abort_unless($vendor !== null, 404);
+
+        $oldLat = $vendor->gps_lat;
+        $oldLng = $vendor->gps_lng;
+
+        $vendor->update([
+            'gps_lat' => $event->gps_lat,
+            'gps_lng' => $event->gps_lng,
+        ]);
+
+        $this->auditService->log(
+            actorUserId: $request->user()->id,
+            action: 'vendor_gps_updated_from_pickup',
+            entityType: 'vendor',
+            entityId: $vendor->id,
+            metadata: [
+                'from_event_id' => $event->id,
+                'old_lat' => $oldLat,
+                'old_lng' => $oldLng,
+                'new_lat' => $event->gps_lat,
+                'new_lng' => $event->gps_lng,
+            ],
+            ipAddress: $request->ip()
+        );
+
+        return back()->with('success', "Vendor {$vendor->vendor_code} GPS updated to pickup coordinates ({$event->gps_lat}, {$event->gps_lng}).");
+    }
 }

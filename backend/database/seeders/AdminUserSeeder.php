@@ -13,14 +13,14 @@ class AdminUserSeeder extends Seeder
      */
     public function run(): void
     {
-        $email = env('ADMIN_SEED_EMAIL', 'admin@ucotrace.gh');
-        $password = env('ADMIN_SEED_PASSWORD', 'Admin@UCO2026!');
+        $email = config('uco.admin_seed_email', 'admin@ucotrace.gh');
+        $password = config('uco.admin_seed_password', 'Admin@UCO2026!');
 
         User::updateOrCreate(
             ['email' => $email],
             [
-                'name' => env('ADMIN_SEED_NAME', 'UCO System Admin'),
-                'phone' => env('ADMIN_SEED_PHONE', '+233200000001'),
+                'name' => config('uco.admin_seed_name', 'UCO System Admin'),
+                'phone' => config('uco.admin_seed_phone', '+233200000001'),
                 'password' => Hash::make($password),
                 'role' => User::ROLE_ADMIN,
                 'is_active' => true,

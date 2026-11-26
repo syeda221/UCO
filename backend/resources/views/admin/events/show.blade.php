@@ -110,8 +110,17 @@
                     <div class="p-4 rounded-2xl bg-[#272A25]">
                         <div class="text-[#A3A6A0]">Captured Pickup GPS (Accuracy ±{{ $event->gps_accuracy_meters ?? '?' }}m)</div>
                         <div class="font-mono text-sm mt-1">{{ $event->gps_lat }}, {{ $event->gps_lng }}</div>
-                        <a href="https://maps.google.com/?q={{ $event->gps_lat }},{{ $event->gps_lng }}" target="_blank"
-                           class="inline-block mt-2 text-[#B6F500] underline">Open in Google Maps &rarr;</a>
+                        <div class="mt-3 flex flex-wrap items-center gap-3">
+                            <a href="https://maps.google.com/?q={{ $event->gps_lat }},{{ $event->gps_lng }}" target="_blank"
+                               class="text-[#B6F500] underline">Open in Google Maps &rarr;</a>
+                            <form method="POST" action="{{ route('admin.events.set-vendor-gps', $event) }}">
+                                @csrf
+                                <button type="submit"
+                                        class="px-3 py-1 rounded-full bg-white text-[#141513] text-[11px] font-bold hover:opacity-90">
+                                    Set Vendor GPS from this Pickup
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>

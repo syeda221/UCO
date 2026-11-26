@@ -40,5 +40,6 @@ Route::prefix('admin')
         Route::get('/events', [CollectionEventController::class, 'index'])->name('events.index');
         Route::get('/events/{event}', [CollectionEventController::class, 'show'])->name('events.show');
         Route::post('/events/{event}/correction', [CollectionEventController::class, 'logCorrection'])->name('events.correction');
+        Route::post('/events/{event}/set-vendor-gps', [CollectionEventController::class, 'setVendorGps'])->name('events.set-vendor-gps');
         Route::get('/photos/{photo}', [CollectionEventController::class, 'showPhoto'])->name('photos.show');
     });

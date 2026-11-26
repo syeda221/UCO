@@ -7,7 +7,7 @@ plugins {
 android {
     namespace = "gh.ucotrace.uco_collector"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // ndkVersion skipped: no native C/C++ plugins used (avoids 1GB NDK download)
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
