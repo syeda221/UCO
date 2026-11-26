@@ -80,7 +80,7 @@
                 </div>
 
                 <div id="map_status" class="text-[11px] text-[#5D5F5B] hidden"></div>
-                <div id="vendor_map" class="w-full h-64 rounded-2xl border border-[#E6E7E3] z-0"></div>
+                <div id="vendor_map" class="w-full rounded-2xl border border-[#E6E7E3] z-0" style="height: 280px; min-height: 280px;"></div>
                 <p class="text-[11px] text-[#7A7D78]">Click anywhere on the map or drag the pin to set exact coordinates.</p>
             </div>
 
@@ -206,6 +206,7 @@
         }).addTo(map);
 
         const marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+        setTimeout(() => map.invalidateSize(), 250);
 
         function setCoords(lat, lng, zoom = null, msg = null) {
             const fixedLat = Number(lat).toFixed(7);
