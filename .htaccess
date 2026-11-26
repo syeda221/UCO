@@ -1,0 +1,17 @@
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Preserve Authorization header for Laravel Sanctum Bearer tokens
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Block direct browser access to repo internals, mobile source, and Laravel private/config files
+    RewriteRule ^(\.git|\.gitignore|README\.md|mobile) - [F,L]
+    RewriteRule ^backend/(?!public/) - [F,L]
+
+    # Route all requests cleanly to Laravel's public/ directory
+    RewriteCond %{REQUEST_URI} !^/backend/public/
+    RewriteRule ^(.*)$ backend/public/$1 [L]
+</IfModule>
