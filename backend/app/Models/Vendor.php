@@ -74,6 +74,50 @@ class Vendor extends Model
             ->orderByDesc('created_at');
     }
 
+    public function scopeWithExpiringMou($query, int $days = 15)
+    {
+        $cutoff = now()->addDays($days)->toDateString();
+
+        return $query->where(function ($q) use ($cutoff) {
+            $q->where('mou_status', 'expired')
+                ->orWhere(function ($q2) use ($cutoff) {
+                    $q2->whereNotNull('mou_expiry_date')
+                        ->whereDate('mou_expiry_date', '<=', $cutoff);
+                });
+        });
+    }
+
+    public function scopeWithExpiringIscc($query, int $days = 15)
+    {
+        $cutoff = now()->addDays($days)->toDateString();
+
+        return $query->where(function ($q) use ($cutoff) {
+            $q->where('iscc_declaration_status', 'expired')
+                ->orWhere(function ($q2) use ($cutoff) {
+                    $q2->whereNotNull('iscc_expiry_date')
+                        ->whereDate('iscc_expiry_date', '<=', $cutoff);
+                });
+        });
+    }
+
+    public function scopeNeedingComplianceAttention($query, int $days = 15)
+    {
+        $cutoff = now()->addDays($days)->toDateString();
+
+        return $query->where(function ($q) use ($cutoff) {
+            $q->where('mou_status', 'expired')
+                ->orWhere('iscc_declaration_status', 'expired')
+                ->orWhere(function ($q2) use ($cutoff) {
+                    $q2->whereNotNull('mou_expiry_date')
+                        ->whereDate('mou_expiry_date', '<=', $cutoff);
+                })
+                ->orWhere(function ($q3) use ($cutoff) {
+                    $q3->whereNotNull('iscc_expiry_date')
+                        ->whereDate('iscc_expiry_date', '<=', $cutoff);
+                });
+        });
+    }
+
     public function isMouExpiringSoon(int $days = 15): bool
     {
         if (! $this->mou_expiry_date || $this->isMouExpired()) {

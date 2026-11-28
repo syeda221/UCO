@@ -32,24 +32,12 @@ class DashboardController extends Controller
             ->toArray();
 
         $expiringMous = Vendor::where('is_active', true)
-            ->where(function ($q) {
-                $q->where('mou_status', 'expired')
-                    ->orWhere(function ($q2) {
-                        $q2->whereNotNull('mou_expiry_date')
-                            ->whereDate('mou_expiry_date', '<=', now()->addDays(15));
-                    });
-            })
+            ->withExpiringMou(15)
             ->orderBy('mou_expiry_date')
             ->get();
 
         $expiringIsccs = Vendor::where('is_active', true)
-            ->where(function ($q) {
-                $q->where('iscc_declaration_status', 'expired')
-                    ->orWhere(function ($q2) {
-                        $q2->whereNotNull('iscc_expiry_date')
-                            ->whereDate('iscc_expiry_date', '<=', now()->addDays(15));
-                    });
-            })
+            ->withExpiringIscc(15)
             ->orderBy('iscc_expiry_date')
             ->get();
 

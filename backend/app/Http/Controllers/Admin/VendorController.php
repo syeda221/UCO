@@ -55,19 +55,7 @@ class VendorController extends Controller
             } elseif ($flag === '10_plus_tonnes') {
                 $query->where('produces_10_plus_tonnes_monthly', true);
             } elseif ($flag === 'expiring_attention') {
-                $cutoff = now()->addDays(15)->toDateString();
-                $query->where(function ($q) use ($cutoff) {
-                    $q->where('mou_status', 'expired')
-                        ->orWhere('iscc_declaration_status', 'expired')
-                        ->orWhere(function ($q2) use ($cutoff) {
-                            $q2->whereNotNull('mou_expiry_date')
-                                ->whereDate('mou_expiry_date', '<=', $cutoff);
-                        })
-                        ->orWhere(function ($q3) use ($cutoff) {
-                            $q3->whereNotNull('iscc_expiry_date')
-                                ->whereDate('iscc_expiry_date', '<=', $cutoff);
-                        });
-                });
+                $query->needingComplianceAttention(15);
             }
         }
 
@@ -79,7 +67,18 @@ class VendorController extends Controller
             ->orderBy('area_zone')
             ->pluck('area_zone');
 
-        return view('admin.vendors.index', compact('vendors', 'areaZones'));
+        $summary = [
+            'total' => Vendor::count(),
+            'active' => Vendor::where('is_active', true)->count(),
+            'iscc_active' => Vendor::where('is_active', true)
+                ->where('iscc_declaration_status', 'active')
+                ->count(),
+            'attention' => Vendor::where('is_active', true)
+                ->needingComplianceAttention(15)
+                ->count(),
+        ];
+
+        return view('admin.vendors.index', compact('vendors', 'areaZones', 'summary'));
     }
 
     public function create(): View
