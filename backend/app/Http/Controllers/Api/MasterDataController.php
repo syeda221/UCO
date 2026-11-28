@@ -24,11 +24,17 @@ class MasterDataController extends Controller
                 'name',
                 'tier',
                 'address',
+                'area_zone',
                 'gps_lat',
                 'gps_lng',
                 'mou_status',
                 'mou_expiry_date',
                 'qualiplast_tier',
+                'expected_monthly_volume',
+                'expected_volume_unit',
+                'produces_10_plus_tonnes_monthly',
+                'has_animal_origin',
+                'iscc_declaration_status',
             ]);
 
         $containers = Container::query()

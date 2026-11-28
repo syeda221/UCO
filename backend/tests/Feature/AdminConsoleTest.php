@@ -6,8 +6,11 @@ use App\Models\CollectionEvent;
 use App\Models\Container;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Models\VendorDocument;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -171,5 +174,129 @@ class AdminConsoleTest extends TestCase
             ->post(route('admin.events.set-vendor-gps', $correction))
             ->assertRedirect();
         $this->assertEquals($correction->gps_lat, $vendor->fresh()->gps_lat);
+    }
+
+    public function test_admin_can_manage_extended_vendor_compliance_iscc_docs_and_filters(): void
+    {
+        Storage::fake('local');
+        $admin = $this->createAdmin();
+
+        $isccFile = UploadedFile::fake()->create('iscc-signed.pdf', 80, 'application/pdf');
+        $permitFile = UploadedFile::fake()->create('epa-permit.pdf', 120, 'application/pdf');
+
+        $this->actingAs($admin)->post(route('admin.vendors.store'), [
+            'vendor_code' => 'VND-020',
+            'name' => 'Airport Kempinski Kitchen',
+            'legal_name' => 'Kempinski Gold Coast Ltd',
+            'tier' => 'hotel',
+            'address' => 'Gamel Abdul Nasser Ave',
+            'area_zone' => 'Airport Residential',
+            'gps_lat' => 5.5592,
+            'gps_lng' => -0.1973,
+            'mou_status' => 'mou_active',
+            'mou_expiry_date' => now()->addMonths(6)->toDateString(),
+            'qualiplast_tier' => '50L Drum',
+            'expected_monthly_volume' => 11500,
+            'expected_volume_unit' => 'kg',
+            'produces_10_plus_tonnes_monthly' => '1',
+            'has_animal_origin' => '1',
+            'iscc_declaration_status' => 'active',
+            'iscc_signed_date' => now()->subMonths(11)->toDateString(),
+            'iscc_expiry_date' => now()->addDays(7)->toDateString(),
+            'iscc_doc' => $isccFile,
+            'doc_type' => 'environmental_permit',
+            'doc_reference_number' => 'EPA-GH-9901',
+            'doc_issue_date' => now()->subMonths(6)->toDateString(),
+            'doc_expiry_date' => now()->addDays(10)->toDateString(),
+            'onboarding_docs' => [$permitFile],
+            'is_active' => '1',
+            'contact_names' => ['Kofi Boateng'],
+            'contact_roles' => ['Executive Chef'],
+            'contact_phones' => ['+233245000222'],
+            'contact_emails' => ['chef@kempinski.gh'],
+        ])->assertRedirect(route('admin.vendors.index'));
+
+        $vendor = Vendor::where('vendor_code', 'VND-020')->firstOrFail();
+        $this->assertEquals('Airport Residential', $vendor->area_zone);
+        $this->assertEquals(11500.0, $vendor->expected_monthly_volume);
+        $this->assertEquals('kg', $vendor->expected_volume_unit);
+        $this->assertTrue($vendor->produces_10_plus_tonnes_monthly);
+        $this->assertTrue($vendor->has_animal_origin);
+        $this->assertTrue($vendor->isIsccExpiringSoon(15));
+        $this->assertFalse($vendor->isIsccExpired());
+        $this->assertNotNull($vendor->iscc_doc_path);
+        $this->assertEquals('chef@kempinski.gh', $vendor->contact_chain_json[0]['email']);
+
+        $this->assertEquals(2, $vendor->documents()->count());
+        $permitDoc = $vendor->documents()->where('doc_type', 'environmental_permit')->firstOrFail();
+
+        // Download ISCC declaration and permit document
+        $this->actingAs($admin)->get(route('admin.vendors.iscc-doc', $vendor))->assertStatus(200);
+        $this->actingAs($admin)->get(route('admin.vendors.documents.download', [$vendor, $permitDoc]))->assertStatus(200);
+
+        // Renew/replace existing permit document via standalone document upload
+        $renewedPermit = UploadedFile::fake()->create('epa-permit-renewed.pdf', 140, 'application/pdf');
+        $this->actingAs($admin)->post(route('admin.vendors.documents.store', $vendor), [
+            'doc_type' => 'environmental_permit',
+            'doc_reference_number' => 'EPA-GH-2027-01',
+            'doc_issue_date' => now()->toDateString(),
+            'doc_expiry_date' => now()->addYear()->toDateString(),
+            'replace_document_id' => $permitDoc->id,
+            'document_file' => $renewedPermit,
+        ])->assertRedirect(route('admin.vendors.edit', $vendor));
+
+        $newDoc = VendorDocument::where('reference_number', 'EPA-GH-2027-01')->firstOrFail();
+        $this->assertEquals('replaced', $permitDoc->fresh()->status);
+        $this->assertEquals($newDoc->id, $permitDoc->fresh()->replaced_by_document_id);
+
+        // Mark renewed doc expired and verify edit view + filters + dashboard alerts
+        $this->actingAs($admin)
+            ->post(route('admin.vendors.documents.expire', [$vendor, $newDoc]))
+            ->assertRedirect(route('admin.vendors.edit', $vendor));
+        $this->assertEquals('expired', $newDoc->fresh()->status);
+
+        $this->actingAs($admin)
+            ->get(route('admin.vendors.edit', $vendor))
+            ->assertStatus(200)
+            ->assertSee('Vendor Performance & Compliance Snapshot')
+            ->assertSee('Animal Origin Declared')
+            ->assertSee('10+ Tonnes/Mo Producer')
+            ->assertSee('EPA-GH-2027-01');
+
+        $this->actingAs($admin)
+            ->get(route('admin.vendors.index', ['compliance_flag' => 'expiring_attention']))
+            ->assertStatus(200)
+            ->assertSee('Airport Kempinski Kitchen');
+
+        $this->actingAs($admin)
+            ->get(route('admin.dashboard'))
+            ->assertStatus(200)
+            ->assertSee('ISCC Self-Declaration records are expired or expiring within 15 days');
+
+        // Unchecking booleans resets them cleanly while preserving existing ISCC file
+        $existingIsccPath = $vendor->iscc_doc_path;
+        $this->actingAs($admin)->put(route('admin.vendors.update', $vendor), [
+            'vendor_code' => 'VND-020',
+            'name' => 'Airport Kempinski Kitchen',
+            'tier' => 'hotel',
+            'area_zone' => 'Airport Residential',
+            'gps_lat' => 5.5592,
+            'gps_lng' => -0.1973,
+            'mou_status' => 'mou_active',
+            'expected_volume_unit' => 'liters',
+            'produces_10_plus_tonnes_monthly' => '0',
+            'has_animal_origin' => '0',
+            'iscc_declaration_status' => 'active',
+            'is_active' => '1',
+            'contact_names' => ['Kofi Boateng'],
+            'contact_roles' => ['Executive Chef'],
+            'contact_phones' => ['+233245000222'],
+            'contact_emails' => ['chef@kempinski.gh'],
+        ])->assertRedirect(route('admin.vendors.index'));
+
+        $freshVendor = $vendor->fresh();
+        $this->assertFalse($freshVendor->produces_10_plus_tonnes_monthly);
+        $this->assertFalse($freshVendor->has_animal_origin);
+        $this->assertEquals($existingIsccPath, $freshVendor->iscc_doc_path);
     }
 }

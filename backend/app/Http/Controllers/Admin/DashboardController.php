@@ -7,6 +7,7 @@ use App\Models\CollectionEvent;
 use App\Models\Container;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Models\VendorDocument;
 use Carbon\Carbon;
 use Illuminate\View\View;
 
@@ -31,10 +32,34 @@ class DashboardController extends Controller
             ->toArray();
 
         $expiringMous = Vendor::where('is_active', true)
-            ->whereNotNull('mou_expiry_date')
-            ->whereDate('mou_expiry_date', '<=', now()->addDays(15))
+            ->where(function ($q) {
+                $q->where('mou_status', 'expired')
+                    ->orWhere(function ($q2) {
+                        $q2->whereNotNull('mou_expiry_date')
+                            ->whereDate('mou_expiry_date', '<=', now()->addDays(15));
+                    });
+            })
             ->orderBy('mou_expiry_date')
             ->get();
+
+        $expiringIsccs = Vendor::where('is_active', true)
+            ->where(function ($q) {
+                $q->where('iscc_declaration_status', 'expired')
+                    ->orWhere(function ($q2) {
+                        $q2->whereNotNull('iscc_expiry_date')
+                            ->whereDate('iscc_expiry_date', '<=', now()->addDays(15));
+                    });
+            })
+            ->orderBy('iscc_expiry_date')
+            ->get();
+
+        $expiringDocsCount = VendorDocument::where('status', 'expired')
+            ->orWhere(function ($q) {
+                $q->where('status', 'active')
+                    ->whereNotNull('expiry_date')
+                    ->whereDate('expiry_date', '<=', now()->addDays(15));
+            })
+            ->count();
 
         $flaggedCount = (clone $effectiveEventsQuery)
             ->where(function ($q) {
@@ -83,6 +108,8 @@ class DashboardController extends Controller
             'totalVendorsCount',
             'tierCounts',
             'expiringMous',
+            'expiringIsccs',
+            'expiringDocsCount',
             'flaggedCount',
             'dailyChart',
             'collectorsHealth',

@@ -25,6 +25,10 @@ Route::prefix('admin')
         Route::post('/vendors', [VendorController::class, 'store'])->name('vendors.store');
         Route::get('/vendors/{vendor}/edit', [VendorController::class, 'edit'])->name('vendors.edit');
         Route::put('/vendors/{vendor}', [VendorController::class, 'update'])->name('vendors.update');
+        Route::get('/vendors/{vendor}/iscc-doc', [VendorController::class, 'downloadIsccDoc'])->name('vendors.iscc-doc');
+        Route::post('/vendors/{vendor}/documents', [VendorController::class, 'uploadDocument'])->name('vendors.documents.store');
+        Route::get('/vendors/{vendor}/documents/{document}', [VendorController::class, 'downloadDocument'])->name('vendors.documents.download');
+        Route::post('/vendors/{vendor}/documents/{document}/expire', [VendorController::class, 'markDocumentExpired'])->name('vendors.documents.expire');
         Route::get('/vendors/{vendor}/docs/{index}', [VendorController::class, 'downloadDoc'])->name('vendors.doc');
 
         Route::get('/containers', [ContainerController::class, 'index'])->name('containers.index');

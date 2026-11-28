@@ -48,18 +48,34 @@
         </div>
 
         <div class="bg-white rounded-[22px] p-6 border border-[#E6E7E3]">
+            @php
+                $totalComplianceAlerts = $expiringMous->count() + $expiringIsccs->count() + $flaggedCount;
+            @endphp
             <div class="flex items-center justify-between text-xs font-medium text-[#7A7D78]">
                 <span>Compliance &amp; Field Alerts</span>
-                <span class="w-2.5 h-2.5 rounded-full {{ ($expiringMous->count() + $flaggedCount) > 0 ? 'bg-amber-500' : 'bg-[#B6F500]' }}"></span>
+                <span class="w-2.5 h-2.5 rounded-full {{ $totalComplianceAlerts > 0 ? 'bg-amber-500' : 'bg-[#B6F500]' }}"></span>
             </div>
             <div class="font-display font-bold text-3xl mt-3 text-[#141513]">
-                {{ $expiringMous->count() + $flaggedCount }}
+                {{ $totalComplianceAlerts }}
             </div>
             <div class="text-xs text-[#7A7D78] mt-2">
-                {{ $expiringMous->count() }} expiring MOUs &bull; {{ $flaggedCount }} flagged pickups
+                {{ $expiringMous->count() }} MOUs &bull; {{ $expiringIsccs->count() }} ISCC &bull; {{ $expiringDocsCount }} docs &bull; {{ $flaggedCount }} pickups
             </div>
         </div>
     </div>
+
+    @if(($expiringMous->count() + $expiringIsccs->count()) > 0)
+        <div class="mb-6 px-5 py-3.5 rounded-[20px] bg-amber-50 border border-amber-200 flex flex-wrap items-center justify-between gap-3 text-xs text-amber-900">
+            <div>
+                <span class="font-bold">Expiry Attention:</span>
+                {{ $expiringMous->count() }} MOU/LOI and {{ $expiringIsccs->count() }} ISCC Self-Declaration records are expired or expiring within 15 days.
+            </div>
+            <a href="{{ route('admin.vendors.index', ['compliance_flag' => 'expiring_attention']) }}"
+               class="px-3.5 py-1.5 rounded-full bg-[#1A1C19] text-white font-semibold hover:opacity-90">
+                Review Vendors &rarr;
+            </a>
+        </div>
+    @endif
 
     <!-- Row 2: 7-Day Volume Chart + Collector Sync Health -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
